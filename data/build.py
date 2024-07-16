@@ -5,7 +5,7 @@
 # Written by Ze Liu
 # --------------------------------------------------------
 
-import os
+# import os
 import torch
 import numpy as np
 import torch.distributed as dist
@@ -18,25 +18,36 @@ from timm.data.transforms import _pil_interp
 from .cached_image_folder import CachedImageFolder
 from .samplers import SubsetRandomSampler
 from .dataset_fg import DatasetMeta
-def build_loader(config):
+
+
+def build_loader(config, args):
     config.defrost()
-    dataset_train, config.MODEL.NUM_CLASSES = build_dataset(is_train=True, config=config)
+    dataset_train, config.MODEL.NUM_CLASSES = build_dataset(
+        is_train=True, config=config, args=args
+    )
     config.freeze()
     print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build train dataset")
-    dataset_val, _ = build_dataset(is_train=False, config=config)
+
+    dataset_val, _ = build_dataset(is_train=False, config=config, args=args)
+
     print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
 
     num_tasks = dist.get_world_size()
     global_rank = dist.get_rank()
     if config.DATA.ZIP_MODE and config.DATA.CACHE_MODE == 'part':
-        indices = np.arange(dist.get_rank(), len(dataset_train), dist.get_world_size())
+        indices = np.arange(
+            dist.get_rank(), len(dataset_train), dist.get_world_size())
         sampler_train = SubsetRandomSampler(indices)
     else:
         sampler_train = torch.utils.data.DistributedSampler(
-            dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
+            dataset_train,
+            num_replicas=num_tasks,
+            rank=global_rank,
+            shuffle=True
         )
 
-    indices = np.arange(dist.get_rank(), len(dataset_val), dist.get_world_size())
+    indices = np.arange(
+        dist.get_rank(), len(dataset_val), dist.get_world_size())
     sampler_val = SubsetRandomSampler(indices)
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -68,17 +79,18 @@ def build_loader(config):
     return dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn
 
 
-def build_dataset(is_train, config):
+def build_dataset(is_train, config, args):
     transform = build_transform(is_train, config)
     if config.DATA.DATASET == 'imagenet':
         prefix = 'train' if is_train else 'val'
         if config.DATA.ZIP_MODE:
             ann_file = prefix + "_map.txt"
             prefix = prefix + ".zip@/"
-            dataset = CachedImageFolder(config.DATA.DATA_PATH, ann_file, prefix, transform,
-                                        cache_mode=config.DATA.CACHE_MODE if is_train else 'part')
+            dataset = CachedImageFolder(
+                config.DATA.DATA_PATH, ann_file, prefix, transform,
+                cache_mode=config.DATA.CACHE_MODE if is_train else 'part')
         else:
-#             root = os.path.join(config.DATA.DATA_PATH, prefix)
+            # root = os.path.join(config.DATA.DATA_PATH, prefix)
             root = './datasets/imagenet'
             dataset = datasets.ImageFolder(root, transform=transform)
         nb_classes = 1000
@@ -123,6 +135,11 @@ def build_dataset(is_train, config):
         root = './datasets/aircraft'
         dataset = DatasetMeta(root=root,transform=transform,train=is_train,aux_info=config.DATA.ADD_META,dataset=config.DATA.DATASET)
         nb_classes = 100
+
+    elif config.DATA.DATASET == "inat100k":
+        root = args.root
+        dataset = DatasetMeta(root=root, transform=transform, train=is_train, aux_info=config.DATA.ADD_META, dataset=config.DATA.DATASET)
+
     else:
         raise NotImplementedError("We only support ImageNet and inaturelist.")
 

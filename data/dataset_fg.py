@@ -352,7 +352,7 @@ def find_images_and_targets(root,istrain=False,aux_info=False):
     for categorie in train_class_info['categories']:
         id2label[int(categorie['id'])] = categorie['name'].strip().lower()
     class_info = train_class_info if istrain else val_class_info
-    
+
     images_and_targets = []
     images_info = []
     if aux_info:
@@ -381,6 +381,73 @@ def find_images_and_targets(root,istrain=False,aux_info=False):
     return images_and_targets,class_to_idx,images_info
 
 
+def get_all_classes(*dirs):
+    all_classes = set()
+    for root_dir in dirs:
+        for class_name in os.listdir(root_dir):
+            class_dir = os.path.join(root_dir, class_name)
+            if os.path.isdir(class_dir):
+                all_classes.add(class_name)
+    return sorted(all_classes)
+
+
+def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
+    train_dir = os.path.join(root, "train")
+    val_dir = os.path.join(root, "val")
+    test_dir = os.path.join(root, "test")
+    main_root = os.path.join(root, method)
+
+    if method == "train":
+        metadata_csv = pd.read_csv(train_csv)
+    elif method == "val":
+        metadata_csv = pd.read_csv(val_csv)
+
+    all_classes = get_all_classes(train_dir, val_dir, test_dir)
+
+    num_classes = len(all_classes)
+
+    # Create a universal class_to_idx mapping
+    class_to_idx = {class_name: idx for idx,
+                    class_name in enumerate(all_classes)}
+
+    images_and_targets = []
+    images_info = []
+
+    aux_info = True  # awesome
+
+    for root, dirs, files in os.walk(main_root, followlinks=True):
+        if root == main_root:
+            continue
+
+        target_class = root.split("/")[-1]  # parent dir == class
+        class_idx = class_to_idx[target_class]  # consistent indicies
+
+        for file in files:
+            date = metadata_csv["date_collected"][os.path.basename(file)]
+            latitude = metadata_csv['latitude'][os.path.basename(file)]
+            longitude = metadata_csv["longitude"][os.path.basename(file)]
+
+            if aux_info:
+                images_and_targets.append(
+                    (
+                        os.path.join(target_class, file),
+                        class_idx,
+                        get_temporal_info(date, miss_hour=True) +
+                        get_spatial_info(latitude, longitude)
+                    )
+                )
+            images_and_targets.append(
+                (os.path.join(target_class, file), class_idx)
+            )
+
+            images_info.append({
+                "date": date,
+                "latitude": latitude,
+                "longitude": longitude
+            })
+    return images_and_targets, class_to_idx, images_info
+
+
 class DatasetMeta(data.Dataset):
     def __init__(
             self,
@@ -391,13 +458,16 @@ class DatasetMeta(data.Dataset):
             aux_info=False,
             dataset='inaturelist2021',
             class_ratio=1.0,
-            per_sample=1.0):
+            per_sample=1.0,
+            train_csv="",
+            val_csv=""
+    ):
         self.aux_info = aux_info
         self.dataset = dataset
         if dataset in ['inaturelist2021','inaturelist2021_mini']:
-            images, class_to_idx,images_info = find_images_and_targets(root,train,aux_info)
+            images, class_to_idx, images_info = find_images_and_targets(root,train,aux_info)
         elif dataset in ['inaturelist2017','inaturelist2018']:
-            images, class_to_idx,images_info = find_images_and_targets_2017_2018(root,dataset,train,aux_info)
+            images, class_to_idx, images_info = find_images_and_targets_2017_2018(root,dataset,train,aux_info)
         elif dataset == 'cub-200':
             images, class_to_idx,images_info = find_images_and_targets_cub200(root,dataset,train,aux_info)
         elif dataset == 'stanfordcars':
@@ -410,6 +480,19 @@ class DatasetMeta(data.Dataset):
             images,class_to_idx,images_info = find_images_and_targets_nabirds(root,dataset,train)
         elif dataset == 'aircraft':
             images,class_to_idx,images_info = find_images_and_targets_aircraft(root,dataset,train)
+
+        elif dataset == "inat100k":
+            (
+                images, 
+                class_to_idx, 
+                images_info
+            ) = find_images_and_targets_inat100k(
+                root,
+                "train" if train else "val",
+                train_csv,
+                val_csv
+            )
+
         if len(images) == 0:
             raise RuntimeError(f'Found 0 images in subfolders of {root}. '
                                f'Supported image extensions are {", ".join(IMG_EXTENSIONS)}')
@@ -420,7 +503,6 @@ class DatasetMeta(data.Dataset):
         self.images_info = images_info
         self.load_bytes = load_bytes
         self.transform = transform
-        
 
     def __getitem__(self, index):
         if self.aux_info:

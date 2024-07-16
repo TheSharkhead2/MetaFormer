@@ -28,6 +28,9 @@ except ImportError:
 
 def parse_option():
     parser = argparse.ArgumentParser('MetaFG training and evaluation script', add_help=False)
+
+    parser.add_argument("--root", type=str)
+
     parser.add_argument('--cfg', type=str, required=True, metavar="FILE", help='path to config file', )
     parser.add_argument(
         "--opts",
@@ -94,8 +97,14 @@ def parse_option():
     return args, config
 
 
-def main(config):
-    dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(config)
+def main(config, args):
+    (
+        dataset_train,
+        dataset_val,
+        data_loader_train,
+        data_loader_val,
+        mixup_fn
+    ) = build_loader(config, args)
     logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
     model = build_model(config)
     model.cuda()
@@ -352,7 +361,7 @@ def throughput(data_loader, model, logger):
 
 
 if __name__ == '__main__':
-    _, config = parse_option()
+    args, config = parse_option()
 
     if config.AMP_OPT_LEVEL != "O0":
         assert amp is not None, "amp not installed!"
@@ -400,4 +409,4 @@ if __name__ == '__main__':
     # print config
     logger.info(config.dump())
 
-    main(config)
+    main(config, args)
