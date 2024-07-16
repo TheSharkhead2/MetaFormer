@@ -1,1 +1,1 @@
-python3 -m torch.distributed.launch --nproc_per_node 2 --master_port 29505  main.py --cfg configs/MetaFG_meta_1_224.yaml --dataset inat100k --pretrain /home/trode/mf_pretrained_models/metafg_1_21k_224.pth --batch-size 128 --output /home/trode/metaformer/out
+CUDA_VISIBLE_DEVICES=5,6 python3 -m torch.distributed.launch --nproc_per_node 2 --master_port 29505  main.py --cfg configs/MetaFG_meta_1_224.yaml --dataset inat100k --pretrain /home/trode/mf_pretrained_models/metafg_1_21k_224.pth --batch-size 128 --output /home/trode/metaformer/out
