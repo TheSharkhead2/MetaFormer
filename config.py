@@ -69,7 +69,7 @@ _C.MODEL.DROP_RATE = 0.0
 # Drop path rate
 _C.MODEL.DROP_PATH_RATE = 0.1
 # Label Smoothing
-_C.MODEL.LABEL_SMOOTHING = 0.0  # 0.1
+_C.MODEL.LABEL_SMOOTHING = 0.1
 
 # pretrain
 _C.MODEL.PRETRAINED = None
@@ -137,7 +137,7 @@ _C.AUG.REMODE = 'pixel'
 # Random erase count
 _C.AUG.RECOUNT = 1
 # Mixup alpha, mixup enabled if > 0
-_C.AUG.MIXUP = 0.0  # 0.8
+_C.AUG.MIXUP = 0.8
 # Cutmix alpha, cutmix enabled if > 0
 _C.AUG.CUTMIX = 1.0
 # Cutmix min/max ratio, overrides alpha and enables cutmix if set
