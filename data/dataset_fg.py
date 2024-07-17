@@ -425,6 +425,17 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
     elif method == "val":
         metadata_csv = pd.read_csv(val_csv)
 
+    # for indexing lat long of csv
+    lat_long_cols = ["latitude", "longitude"]
+    dates_df = metadata_csv["date_collected"]  # pull out date
+
+    # replace nan lat/longs with median
+    lat_long_df = metadata_csv[lat_long_cols].fillna(
+        metadata_csv[lat_long_cols].median(0))
+
+    # re-merge dataframes
+    metadata_csv = pd.concat([lat_long_df, dates_df], axis=1)
+
     all_classes = get_all_classes(train_dir, val_dir, test_dir)
 
     num_classes = len(all_classes)
@@ -475,7 +486,7 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
                 "latitude": latitude,
                 "longitude": longitude
             })
-    return images_and_targets, class_to_idx, images_info
+    return images_and_targets, class_to_idx, images_info, num_classes
 
 
 class DatasetMeta(data.Dataset):
@@ -515,7 +526,8 @@ class DatasetMeta(data.Dataset):
             (
                 images,
                 class_to_idx,
-                images_info
+                images_info,
+                _
             ) = find_images_and_targets_inat100k(
                 root,
                 "train" if train else "val",
