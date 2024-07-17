@@ -440,7 +440,7 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
                     )
                 )
             images_and_targets.append(
-                (os.path.join(target_class, file), class_idx)
+                (os.path.join(main_root, target_class, file), class_idx)
             )
 
             images_info.append({
@@ -509,7 +509,7 @@ class DatasetMeta(data.Dataset):
 
     def __getitem__(self, index):
         if self.aux_info:
-            path, target,aux_info = self.samples[index]
+            path, target, aux_info = self.samples[index]
         else:
             path, target = self.samples[index]
         img = open(path, 'rb').read() if self.load_bytes else Image.open(path).convert('RGB')
