@@ -33,6 +33,8 @@ def parse_option():
 
     parser.add_argument("--root", type=str)
     parser.add_argument("--wandb-project", type=str, default="NaN")
+    parser.add_argument("--train-meta", type=str, default="")
+    parser.add_argument("--val-meta", type=str, default="")
 
     parser.add_argument('--cfg', type=str, required=True, metavar="FILE", help='path to config file', )
     parser.add_argument(

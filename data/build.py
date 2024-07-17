@@ -138,7 +138,15 @@ def build_dataset(is_train, config, args):
 
     elif config.DATA.DATASET == "inat100k":
         root = args.root
-        dataset = DatasetMeta(root=root, transform=transform, train=is_train, aux_info=config.DATA.ADD_META, dataset=config.DATA.DATASET)
+        dataset = DatasetMeta(
+            root=root,
+            transform=transform,
+            train=is_train,
+            aux_info=config.DATA.ADD_META,
+            dataset=config.DATA.DATASET,
+            train_csv=args.train_meta,
+            val_csv=args.val_meta
+        )
 
     else:
         raise NotImplementedError("We only support ImageNet and inaturelist.")
