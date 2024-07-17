@@ -297,14 +297,18 @@ def train_one_epoch_local_data(
                 optimizer.zero_grad()
                 lr_scheduler.step_update(epoch * num_steps + idx)
         else:
+            print("no accumulation steps")
             loss = criterion(outputs, targets)
             optimizer.zero_grad()
             if config.AMP_OPT_LEVEL != "O0":
+                print("NON O0 OPT LEVEL")
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 if config.TRAIN.CLIP_GRAD:
+                    print("PRE CLIPPING")
                     grad_norm = torch.nn.utils.clip_grad_norm_(
                         amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
+                    print("POST CLIPPING ", grad_norm)
                 else:
                     grad_norm = get_grad_norm(amp.master_params(optimizer))
             else:
