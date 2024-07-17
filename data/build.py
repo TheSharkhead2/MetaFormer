@@ -147,6 +147,7 @@ def build_dataset(is_train, config, args):
             train_csv=args.train_meta,
             val_csv=args.val_meta
         )
+        nb_classes = 1000
 
     else:
         raise NotImplementedError("We only support ImageNet and inaturelist.")
