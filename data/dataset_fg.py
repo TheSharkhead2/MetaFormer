@@ -18,19 +18,23 @@ from math import radians, cos, sin, asin, sqrt, pi
 IMG_EXTENSIONS = ['.png', '.jpg', '.jpeg']
 
 
-def get_spatial_info(latitude,longitude):
+def get_spatial_info(latitude, longitude):
     if latitude and longitude:
         latitude = radians(latitude)
         longitude = radians(longitude)
         x = cos(latitude)*cos(longitude)
         y = cos(latitude)*sin(longitude)
         z = sin(latitude)
-        return [x,y,z]
+
+        if x.isnan() or y.isnan() or z.isnan():
+            print("x ", x, " y ", y, " z ", z)
+
+        return [x, y, z]
     else:
-        return [0,0,0]
+        return [0, 0, 0]
 
 
-def get_temporal_info(date,miss_hour=False):
+def get_temporal_info(date, miss_hour=False):
     try:
         if date:
             if miss_hour:
@@ -46,9 +50,14 @@ def get_temporal_info(date,miss_hour=False):
 
                 if year.isnan() or month.isnan() or day.isnan():
                     print("year ", year, " month ", month, " day ", day)
+                    year, month, day = 0, 0, 0
 
                 x_month = sin(2*pi*month/12)
-                y_month = cos(2*pi*month/12) 
+                y_month = cos(2*pi*month/12)
+
+                if x_month.isnan() or y_month.isnan():
+                    print("x_month ", x_month, " y_month ", y_month)
+
                 if miss_hour:
                     x_hour = 0
                     y_hour = 0
@@ -56,13 +65,13 @@ def get_temporal_info(date,miss_hour=False):
                     hour = int(m.group(4))
                     x_hour = sin(2*pi*hour/24)
                     y_hour = cos(2*pi*hour/24)
-                return [x_month,y_month,x_hour,y_hour]
+                return [x_month, y_month, x_hour, y_hour]
             else:
-                return [0,0,0,0]
+                return [0, 0, 0, 0]
         else:
-            return [0,0,0,0]
+            return [0, 0, 0, 0]
     except:
-        return [0,0,0,0]
+        return [0, 0, 0, 0]
 
 
 def load_file(root,dataset):
@@ -442,12 +451,14 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
             longitude = metadata_csv["longitude"][file_id]
 
             if aux_info:
+                meta_info = get_temporal_info(date, miss_hour=True) + \
+                            get_spatial_info(latitude, longitude)
+
                 images_and_targets.append(
                     (
                         os.path.join(main_root, target_class, file),
                         class_idx,
-                        get_temporal_info(date, miss_hour=True) +
-                        get_spatial_info(latitude, longitude)
+                        meta_info
                     )
                 )
 
