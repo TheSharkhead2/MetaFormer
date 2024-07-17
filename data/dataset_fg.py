@@ -19,7 +19,9 @@ IMG_EXTENSIONS = ['.png', '.jpg', '.jpeg']
 
 
 def get_spatial_info(latitude, longitude):
-    if latitude and longitude:
+    if (latitude and longitude) and not (
+        math.isnan(latitude) or math.isnan(longitude)
+    ):
         latitude = radians(latitude)
         longitude = radians(longitude)
         x = cos(latitude)*cos(longitude)
