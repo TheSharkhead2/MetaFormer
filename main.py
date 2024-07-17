@@ -4,6 +4,8 @@ import argparse
 import datetime
 import numpy as np
 
+import wandb
+
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
@@ -30,6 +32,7 @@ def parse_option():
     parser = argparse.ArgumentParser('MetaFG training and evaluation script', add_help=False)
 
     parser.add_argument("--root", type=str)
+    parser.add_argument("--wandb-project", type=str, default="NaN")
 
     parser.add_argument('--cfg', type=str, required=True, metavar="FILE", help='path to config file', )
     parser.add_argument(
@@ -58,15 +61,15 @@ def parse_option():
     parser.add_argument('--tag', help='tag of experiment')
     parser.add_argument('--eval', action='store_true', help='Perform evaluation only')
     parser.add_argument('--throughput', action='store_true', help='Test throughput only')
-    
+
     parser.add_argument('--num-workers', type=int, 
                         help="num of workers on dataloader ")
-    
+
     parser.add_argument('--lr', type=float, metavar='LR',
                         help='learning rate')
     parser.add_argument('--weight-decay', type=float,
                         help='weight decay (default: 0.05 for adamw)')
-    
+
     parser.add_argument('--min-lr', type=float,
                         help='learning rate')
     parser.add_argument('--warmup-lr', type=float,
@@ -168,27 +171,74 @@ def main(config, args):
     logger.info("Start training")
     start_time = time.time()
     for epoch in range(config.TRAIN.START_EPOCH, config.TRAIN.EPOCHS):
-        data_loader_train.sampler.set_epoch(epoch)      
-        train_one_epoch_local_data(config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn, lr_scheduler)
+        data_loader_train.sampler.set_epoch(epoch)
+        train_one_epoch_local_data(
+            config,
+            model,
+            criterion,
+            data_loader_train,
+            optimizer,
+            epoch,
+            mixup_fn,
+            lr_scheduler
+        )
+
         if dist.get_rank() == 0 and (epoch % config.SAVE_FREQ == 0 or epoch == (config.TRAIN.EPOCHS - 1)):
-            save_checkpoint(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, logger)
-        
-        logger.info(f"**********normal test***********")
+            save_checkpoint(
+                config,
+                epoch,
+                model_without_ddp,
+                max_accuracy,
+                optimizer,
+                lr_scheduler,
+                logger
+            )
+
+        logger.info("**********normal test***********")
         acc1, acc5, loss = validate(config, data_loader_val, model)
+
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         max_accuracy = max(max_accuracy, acc1)
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
+
         if config.DATA.ADD_META:
             logger.info(f"**********mask meta test***********")
-            acc1, acc5, loss = validate(config, data_loader_val, model,mask_meta=True)
-            logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
-#         data_loader_train.terminate()
+            mask_acc1, mask_acc5, mask_loss = validate(config, data_loader_val, model, mask_meta=True)
+            logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {mask_acc1:.1f}%")
+
+            wandb.log({
+                "acc1": acc1,
+                "acc5": acc5,
+                "loss": loss,
+                "masked_meta_acc1": mask_acc1,
+                "masked_meta_acc5": mask_acc5,
+                "masked_meta_loss": mask_loss
+            })
+        else:  # don't log meta masking stuff if we didn't run that test!
+            wandb.log({
+                "acc1": acc1,
+                "acc5": acc5,
+                "loss": loss,
+            })
+
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     logger.info('Training time {}'.format(total_time_str))
-def train_one_epoch_local_data(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler,tb_logger=None):
+
+
+def train_one_epoch_local_data(
+    config,
+    model,
+    criterion,
+    data_loader,
+    optimizer,
+    epoch,
+    mixup_fn,
+    lr_scheduler,
+    tb_logger=None
+):
     model.train()
-    if hasattr(model.module,'cur_epoch'):
+    if hasattr(model.module, 'cur_epoch'):
         model.module.cur_epoch = epoch
         model.module.total_epoch = config.TRAIN.EPOCHS
     optimizer.zero_grad()
@@ -202,12 +252,12 @@ def train_one_epoch_local_data(config, model, criterion, data_loader, optimizer,
     end = time.time()
     for idx, data in enumerate(data_loader):
         if config.DATA.ADD_META:
-            samples, targets,meta = data
+            samples, targets, meta = data
             meta = [m.float() for m in meta]
-            meta = torch.stack(meta,dim=0)
+            meta = torch.stack(meta, dim=0)
             meta = meta.cuda(non_blocking=True)
         else:
-            samples, targets= data
+            samples, targets = data
             meta = None
 
         samples = samples.cuda(non_blocking=True)
@@ -216,7 +266,7 @@ def train_one_epoch_local_data(config, model, criterion, data_loader, optimizer,
         if mixup_fn is not None:
             samples, targets = mixup_fn(samples, targets)
         if config.DATA.ADD_META:
-            outputs = model(samples,meta)
+            outputs = model(samples, meta)
         else:
             outputs = model(samples)
 
@@ -227,13 +277,15 @@ def train_one_epoch_local_data(config, model, criterion, data_loader, optimizer,
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 if config.TRAIN.CLIP_GRAD:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
                 else:
                     grad_norm = get_grad_norm(amp.master_params(optimizer))
             else:
                 loss.backward()
                 if config.TRAIN.CLIP_GRAD:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), config.TRAIN.CLIP_GRAD)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(), config.TRAIN.CLIP_GRAD)
                 else:
                     grad_norm = get_grad_norm(model.parameters())
             if (idx + 1) % config.TRAIN.ACCUMULATION_STEPS == 0:
@@ -247,13 +299,15 @@ def train_one_epoch_local_data(config, model, criterion, data_loader, optimizer,
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 if config.TRAIN.CLIP_GRAD:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
                 else:
                     grad_norm = get_grad_norm(amp.master_params(optimizer))
             else:
                 loss.backward()
                 if config.TRAIN.CLIP_GRAD:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), config.TRAIN.CLIP_GRAD)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(), config.TRAIN.CLIP_GRAD)
                 else:
                     grad_norm = get_grad_norm(model.parameters())
             optimizer.step()
@@ -279,6 +333,8 @@ def train_one_epoch_local_data(config, model, criterion, data_loader, optimizer,
                 f'mem {memory_used:.0f}MB')
     epoch_time = time.time() - start
     logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
+
+
 @torch.no_grad()
 def validate(config, data_loader, model, mask_meta=False):
     criterion = torch.nn.CrossEntropyLoss()
@@ -301,7 +357,7 @@ def validate(config, data_loader, model, mask_meta=False):
         else:
             images, target = data
             meta = None
-        
+
         images = images.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
 
@@ -408,5 +464,27 @@ if __name__ == '__main__':
 
     # print config
     logger.info(config.dump())
+
+    wandb.init(
+        project=args.wandb_project,
+        config={
+            "root": args.root,
+            "cfg": args.cfg,
+            "batch_size": args.batch_size,
+            "data_path": args.data_path,
+            "resume": args.resume,
+            "accumulation_steps": args.accumulation_steps,
+            "use_checkpoint": args.use_checkpoint,
+            "amp_opt_level": args.amp_opt_level,
+            "output": args.output,
+            "eval": args.eval,
+            "lr": args.lr,
+            "warmup_lr": args.warmup_lr,
+            "epochs": args.epochs,
+            "warmup_epochs": args.warmup_epochs,
+            "lr_scheduler_name": args.lr_scheduler_name,
+            "pretrain": args.pretrain
+        }
+    )
 
     main(config, args)
