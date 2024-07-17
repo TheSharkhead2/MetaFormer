@@ -15,6 +15,8 @@ from PIL import Image
 from scipy import io as scio
 from math import radians, cos, sin, asin, sqrt, pi
 IMG_EXTENSIONS = ['.png', '.jpg', '.jpeg']
+
+
 def get_spatial_info(latitude,longitude):
     if latitude and longitude:
         latitude = radians(latitude)
@@ -25,6 +27,8 @@ def get_spatial_info(latitude,longitude):
         return [x,y,z]
     else:
         return [0,0,0]
+
+
 def get_temporal_info(date,miss_hour=False):
     try:
         if date:
@@ -46,7 +50,7 @@ def get_temporal_info(date,miss_hour=False):
                 else:
                     hour = int(m.group(4))
                     x_hour = sin(2*pi*hour/24)
-                    y_hour = cos(2*pi*hour/24)        
+                    y_hour = cos(2*pi*hour/24)
                 return [x_month,y_month,x_hour,y_hour]
             else:
                 return [0,0,0,0]
@@ -54,6 +58,8 @@ def get_temporal_info(date,miss_hour=False):
             return [0,0,0,0]
     except:
         return [0,0,0,0]
+
+
 def load_file(root,dataset):
     if dataset == 'inaturelist2017':
         year_flag = 7
