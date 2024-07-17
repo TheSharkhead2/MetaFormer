@@ -26,7 +26,7 @@ def get_spatial_info(latitude, longitude):
         y = cos(latitude)*sin(longitude)
         z = sin(latitude)
 
-        if x.isnan() or y.isnan() or z.isnan():
+        if math.isnan(x) or math.isnan(y) or math.isnan(z):
             print("x ", x, " y ", y, " z ", z)
 
         return [x, y, z]
@@ -48,7 +48,7 @@ def get_temporal_info(date, miss_hour=False):
                 month = int(m.group(2))
                 day = int(m.group(3))
 
-                if year.isnan() or month.isnan() or day.isnan():
+                if math.isnan(year) or math.isnan(month) or math.isnan(day):
                     print("year ", year, " month ", month, " day ", day)
                     year, month, day = 0, 0, 0
 
