@@ -433,15 +433,17 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
             if aux_info:
                 images_and_targets.append(
                     (
-                        os.path.join(target_class, file),
+                        os.path.join(main_root, target_class, file),
                         class_idx,
                         get_temporal_info(date, miss_hour=True) +
                         get_spatial_info(latitude, longitude)
                     )
                 )
-            images_and_targets.append(
-                (os.path.join(main_root, target_class, file), class_idx)
-            )
+
+            else:
+                images_and_targets.append(
+                    (os.path.join(main_root, target_class, file), class_idx)
+                )
 
             images_info.append({
                 "date": date,
@@ -486,8 +488,8 @@ class DatasetMeta(data.Dataset):
 
         elif dataset == "inat100k":
             (
-                images, 
-                class_to_idx, 
+                images,
+                class_to_idx,
                 images_info
             ) = find_images_and_targets_inat100k(
                 root,
@@ -497,8 +499,9 @@ class DatasetMeta(data.Dataset):
             )
 
         if len(images) == 0:
-            raise RuntimeError(f'Found 0 images in subfolders of {root}. '
-                               f'Supported image extensions are {", ".join(IMG_EXTENSIONS)}')
+            raise RuntimeError(
+                f'Found 0 images in subfolders of {root}. '
+                f'Supported image extensions are {", ".join(IMG_EXTENSIONS)}')
         self.root = root
         self.samples = images
         self.imgs = self.samples  # torchvision ImageFolder compat
@@ -526,6 +529,8 @@ class DatasetMeta(data.Dataset):
 
     def __len__(self):
         return len(self.samples)
+
+
 if __name__ == '__main__':
 #     train_dataset = DatasetPre('./fgvc_previous','./fgvc_previous',train=True,aux_info=True)
 #     import ipdb;ipdb.set_trace()
