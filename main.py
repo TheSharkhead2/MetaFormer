@@ -80,18 +80,17 @@ def parse_option():
                         help="epochs")
     parser.add_argument('--warmup-epochs', type=int,
                         help="epochs")
-    
+
     parser.add_argument('--dataset', type=str,
                         help='dataset')
     parser.add_argument('--lr-scheduler-name', type=str,
                         help='lr scheduler name,cosin linear,step')
-    
+
     parser.add_argument('--pretrain', type=str,
                         help='pretrain')
-    
+
     parser.add_argument('--tensorboard', action='store_true', help='using tensorboard')
-    
-    
+
     # distributed training
     parser.add_argument("--local_rank", type=int, required=True, help='local rank for DistributedDataParallel')
 
@@ -276,9 +275,12 @@ def train_one_epoch_local_data(
             loss = criterion(outputs, targets)
             loss = loss / config.TRAIN.ACCUMULATION_STEPS
             if config.AMP_OPT_LEVEL != "O0":
+                print("AMP OPT LEVEL NOT O0")
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 if config.TRAIN.CLIP_GRAD:
+                    print("TRAIN CLIP GRAD ", config.TRAIN.CLIP_GRAD)
+
                     grad_norm = torch.nn.utils.clip_grad_norm_(
                         amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
                 else:
