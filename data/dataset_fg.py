@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import random
+import math
 random.seed(2021)
 from PIL import Image
 from scipy import io as scio
@@ -42,6 +43,10 @@ def get_temporal_info(date,miss_hour=False):
                 year = int(m.group(1))
                 month = int(m.group(2))
                 day = int(m.group(3))
+
+                if year.isnan() or month.isnan() or day.isnan():
+                    print("year ", year, " month ", month, " day ", day)
+
                 x_month = sin(2*pi*month/12)
                 y_month = cos(2*pi*month/12) 
                 if miss_hour:
