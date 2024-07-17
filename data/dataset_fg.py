@@ -27,7 +27,8 @@ def get_spatial_info(latitude, longitude):
         z = sin(latitude)
 
         if math.isnan(x) or math.isnan(y) or math.isnan(z):
-            print("x ", x, " y ", y, " z ", z)
+            print("x ", x, " y ", y, " z ", z, " lat ", latitude, " long ",
+                  longitude)
 
         return [x, y, z]
     else:
