@@ -423,9 +423,12 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
         class_idx = class_to_idx[target_class]  # consistent indicies
 
         for file in files:
-            date = metadata_csv["date_collected"][os.path.basename(file)]
-            latitude = metadata_csv['latitude'][os.path.basename(file)]
-            longitude = metadata_csv["longitude"][os.path.basename(file)]
+            file_id_str, _ = os.path.splitext(os.path.basename(file))
+            file_id = int(file_id_str)
+
+            date = metadata_csv["date_collected"][file_id]
+            latitude = metadata_csv['latitude'][file_id]
+            longitude = metadata_csv["longitude"][file_id]
 
             if aux_info:
                 images_and_targets.append(
