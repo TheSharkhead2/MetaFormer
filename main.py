@@ -119,7 +119,9 @@ def main(config, args):
         model, optimizer = amp.initialize(model, optimizer, opt_level=config.AMP_OPT_LEVEL)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False)
     model_without_ddp = model.module
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    n_parameters = sum(
+        p.numel() for p in model.parameters() if p.requires_grad
+    )
     logger.info(f"number of params: {n_parameters}")
 
     if hasattr(model_without_ddp, 'flops'):
@@ -132,13 +134,15 @@ def main(config, args):
         # smoothing is handled with mixup label transform
         criterion = SoftTargetCrossEntropy()
     elif config.MODEL.LABEL_SMOOTHING > 0.:
-        criterion = LabelSmoothingCrossEntropy(smoothing=config.MODEL.LABEL_SMOOTHING)
+        criterion = LabelSmoothingCrossEntropy(
+            smoothing=config.MODEL.LABEL_SMOOTHING
+        )
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
     max_accuracy = 0.0
     if config.MODEL.PRETRAINED:
-        load_pretained(config,model_without_ddp,logger)
+        load_pretained(config, model_without_ddp, logger)
         if config.EVAL_MODE:
             acc1, acc5, loss = validate(config, data_loader_val, model)
             logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")

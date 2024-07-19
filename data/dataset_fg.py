@@ -489,6 +489,74 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
     return images_and_targets, class_to_idx, images_info, num_classes
 
 
+def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
+    train_dir = os.path.join(root, "train")
+    val_dir = os.path.join(root, "val")
+    test_dir = os.path.join(root, "test")
+    main_root = os.path.join(root, method)
+
+    if method == "train":
+        metadata_csv = pd.read_csv(train_csv)
+    elif method == "val":
+        metadata_csv = pd.read_csv(val_csv)
+
+    # for indexing lat long of csv
+    lat_long_cols = ["tree/latitude", "tree/longitude"]
+
+    # replace nan lat/longs with median
+    metadata_csv = metadata_csv[lat_long_cols].fillna(
+        metadata_csv[lat_long_cols].median(0))
+
+    all_classes = get_all_classes(train_dir, val_dir, test_dir)
+
+    num_classes = len(all_classes)
+
+    # Create a universal class_to_idx mapping
+    class_to_idx = {class_name: idx for idx,
+                    class_name in enumerate(all_classes)}
+
+    images_and_targets = []
+    images_info = []
+
+    aux_info = True  # awesome
+
+    for root, dirs, files in os.walk(main_root, followlinks=True):
+        if root == main_root:
+            continue
+
+        target_class = root.split("/")[-1]  # parent dir == class
+        class_idx = class_to_idx[target_class]  # consistent indicies
+
+        for file in files:
+            file_id_str, _ = os.path.splitext(os.path.basename(file))
+            file_id = int(file_id_str)
+
+            latitude = metadata_csv['tree/latitude'][file_id]
+            longitude = metadata_csv["tree/longitude"][file_id]
+
+            if aux_info:
+                meta_info = get_spatial_info(latitude, longitude)
+
+                images_and_targets.append(
+                    (
+                        os.path.join(main_root, target_class, file),
+                        class_idx,
+                        meta_info
+                    )
+                )
+
+            else:
+                images_and_targets.append(
+                    (os.path.join(main_root, target_class, file), class_idx)
+                )
+
+            images_info.append({
+                "latitude": latitude,
+                "longitude": longitude
+            })
+    return images_and_targets, class_to_idx, images_info, num_classes
+
+
 class DatasetMeta(data.Dataset):
     def __init__(
             self,
@@ -534,6 +602,19 @@ class DatasetMeta(data.Dataset):
                 train_csv,
                 val_csv
             )
+        elif dataset == "auto_arborist":
+            (
+                images,
+                class_to_idx,
+                images_info,
+                num_classes
+            ) = find_images_and_targets_auto_arborist(
+                root,
+                "train" if train else "val",
+                train_csv,
+                val_csv
+            )
+            self.num_classes = num_classes  # DANGEROUS
 
         if len(images) == 0:
             raise RuntimeError(

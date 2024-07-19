@@ -149,6 +149,19 @@ def build_dataset(is_train, config, args):
         )
         nb_classes = 1000
 
+    elif config.DATA.DATASET == "auto_arborist":
+        root = args.root
+        dataset = DatasetMeta(
+            root=root,
+            transform=transform,
+            train=is_train,
+            aux_info=config.DATA.ADD_META,
+            dataset=config.DATA.DATASET,
+            train_csv=args.train_meta,
+            val_csv=args.val_meta
+        )
+        nb_classes = dataset.num_classes
+
     else:
         raise NotImplementedError("We only support ImageNet and inaturelist.")
 
