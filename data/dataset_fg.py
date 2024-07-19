@@ -502,10 +502,14 @@ def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
 
     # for indexing lat long of csv
     lat_long_cols = ["tree/latitude", "tree/longitude"]
+    id_df = metadata_csv["internal_id"]  # pull out date
 
     # replace nan lat/longs with median
-    metadata_csv = metadata_csv[lat_long_cols].fillna(
+    lat_long_df = metadata_csv[lat_long_cols].fillna(
         metadata_csv[lat_long_cols].median(0))
+
+    # re-merge dataframes
+    metadata_csv = pd.concat([lat_long_df, id_df], axis=1)
 
     all_classes = get_all_classes(train_dir, val_dir, test_dir)
 
