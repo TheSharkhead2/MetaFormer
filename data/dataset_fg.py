@@ -528,11 +528,16 @@ def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
         class_idx = class_to_idx[target_class]  # consistent indicies
 
         for file in files:
-            file_id_str, _ = os.path.splitext(os.path.basename(file))
-            file_id = int(file_id_str)
+            file_id, _ = os.path.splitext(os.path.basename(file))
 
-            latitude = metadata_csv['tree/latitude'][file_id]
-            longitude = metadata_csv["tree/longitude"][file_id]
+            latitude = metadata_csv.loc[
+                metadata_csv['internal_id'] == file_id,
+                'tree/latitude'
+            ].iloc(0)
+            longitude = metadata_csv.loc[
+                metadata_csv['internal_id'] == file_id,
+                'tree/longitude'
+            ].iloc(0)
 
             if aux_info:
                 meta_info = get_spatial_info(latitude, longitude)
@@ -661,5 +666,3 @@ if __name__ == '__main__':
 #     train_dataset = DatasetMeta('./aircraft',train=False,aux_info=False,dataset='aircraft')
     import ipdb;ipdb.set_trace()
 #     find_images_and_targets_2017('')
-    
-
