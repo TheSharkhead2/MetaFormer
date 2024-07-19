@@ -544,7 +544,8 @@ def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
             ].iloc[0]
 
             if aux_info:
-                meta_info = get_spatial_info(latitude, longitude)
+                meta_info = [0, 0, 0, 0] + \
+                    get_spatial_info(latitude, longitude)
 
                 images_and_targets.append(
                     (
