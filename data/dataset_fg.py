@@ -537,11 +537,11 @@ def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
             latitude = metadata_csv.loc[
                 metadata_csv['internal_id'] == file_id,
                 'tree/latitude'
-            ].iloc(0)
+            ].iloc[0]
             longitude = metadata_csv.loc[
                 metadata_csv['internal_id'] == file_id,
                 'tree/longitude'
-            ].iloc(0)
+            ].iloc[0]
 
             if aux_info:
                 meta_info = get_spatial_info(latitude, longitude)
