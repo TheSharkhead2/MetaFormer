@@ -465,8 +465,10 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
             longitude = metadata_csv["longitude"][file_id]
 
             if aux_info:
-                meta_info = get_temporal_info(date, miss_hour=True) + \
-                            get_spatial_info(latitude, longitude)
+                # meta_info = get_temporal_info(date, miss_hour=True) + \
+                #             get_spatial_info(latitude, longitude)
+                meta_info = [0, 0, 0, 0] + \
+                    get_spatial_info(latitude, longitude)
 
                 images_and_targets.append(
                     (
