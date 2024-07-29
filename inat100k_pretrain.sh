@@ -1,1 +1,12 @@
-CUDA_VISIBLE_DEVICES=5,6 python3 -m torch.distributed.launch --nproc_per_node 2 --master_port 29505  main.py --cfg configs/MetaFG_meta_1_224.yaml --dataset inat100k --batch-size 128 --output /home/trode/metaformer/out --wandb-project inaturalist --root /home/aoneill/data/iNat100k --train-meta /home/aoneill/csv_files/jul_4_new_csvs/train100kfinal_jul_4.csv --val-meta /home/aoneill/csv_files/jul_4_new_csvs/val100kfinal_jul_4.csv --weight-decay 0.05 --pretrain /home/trode/mf_pretrained_models/metafg_1_21k_224.pth
+CUDA_VISIBLE_DEVICES=5,6 python3 -m torch.distributed.launch \
+  --nproc_per_node 2 --master_port 29505  main.py \
+  --cfg configs/MetaFG_meta_1_224.yaml \
+  --dataset inat100k \
+  --batch-size 128 \
+  --output /home/trode/metaformer/out \
+  --wandb-project inaturalist \
+  --root /home/aoneill/data/iNat100k \
+  --train-meta /home/aoneill/csv_files/jul_4_new_csvs/train100kfinal_jul_4.csv \
+  --val-meta /home/aoneill/csv_files/jul_4_new_csvs/val100kfinal_jul_4.csv \
+  --weight-decay 0.05 \
+  --pretrain /home/trode/mf_pretrained_models/metafg_1_21k_224.pth

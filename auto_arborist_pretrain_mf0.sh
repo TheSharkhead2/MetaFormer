@@ -1,1 +1,12 @@
-CUDA_VISIBLE_DEVICES=1,4 python3 -m torch.distributed.launch --nproc_per_node 2 --master_port 29601  main.py --cfg configs/MetaFG_meta_0_224.yaml --dataset auto_arborist --batch-size 128 --output /home/trode/metaformer/out_aa_mf0 --wandb-project autoarborist_theo --root /home/sandeepmukh/data/autoarborist --train-meta /home/sandeepmukh/data/autoarborist/train.csv --val-meta /home/sandeepmukh/data/autoarborist/val.csv --weight-decay 0.05 --pretrain /home/trode/mf_pretrained_models/metafg_0_21k_224.pth
+CUDA_VISIBLE_DEVICES=1,4 python3 -m torch.distributed.launch \
+  --nproc_per_node 2 --master_port 29601  main.py \
+  --cfg configs/MetaFG_meta_0_224.yaml \
+  --dataset auto_arborist \
+  --batch-size 128 \
+  --output /home/trode/metaformer/out_aa_mf0 \
+  --wandb-project autoarborist_theo \
+  --root /home/sandeepmukh/data/autoarborist \
+  --train-meta /home/sandeepmukh/data/autoarborist/train.csv \
+  --val-meta /home/sandeepmukh/data/autoarborist/val.csv \
+  --weight-decay 0.05 \
+  --pretrain /home/trode/mf_pretrained_models/metafg_0_21k_224.pth
