@@ -145,7 +145,8 @@ def build_dataset(is_train, config, args):
             aux_info=config.DATA.ADD_META,
             dataset=config.DATA.DATASET,
             train_csv=args.train_meta,
-            val_csv=args.val_meta
+            val_csv=args.val_meta,
+            nometa=args.nometa
         )
         nb_classes = 1000
 
@@ -158,7 +159,8 @@ def build_dataset(is_train, config, args):
             aux_info=config.DATA.ADD_META,
             dataset=config.DATA.DATASET,
             train_csv=args.train_meta,
-            val_csv=args.val_meta
+            val_csv=args.val_meta,
+            nometa=args.nometa
         )
         nb_classes = dataset.num_classes
 

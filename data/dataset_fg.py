@@ -414,7 +414,7 @@ def get_all_classes(*dirs):
     return sorted(all_classes)
 
 
-def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
+def find_images_and_targets_inat100k(root, method, train_csv, val_csv, nometa=False):
     train_dir = os.path.join(root, "train")
     val_dir = os.path.join(root, "val")
     test_dir = os.path.join(root, "test")
@@ -465,10 +465,13 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
             longitude = metadata_csv["longitude"][file_id]
 
             if aux_info:
-                # meta_info = get_temporal_info(date, miss_hour=True) + \
-                #             get_spatial_info(latitude, longitude)
-                meta_info = [0, 0, 0, 0] + \
-                    get_spatial_info(latitude, longitude)
+                if nometa:
+                    meta_info = [0, 0, 0, 0] + [0, 0, 0]
+                else:
+                    # meta_info = get_temporal_info(date, miss_hour=True) + \
+                    #             get_spatial_info(latitude, longitude)
+                    meta_info = [0, 0, 0, 0] + \
+                        get_spatial_info(latitude, longitude)
 
                 images_and_targets.append(
                     (
@@ -491,7 +494,7 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv):
     return images_and_targets, class_to_idx, images_info, num_classes
 
 
-def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
+def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv, nometa=False):
     train_dir = os.path.join(root, "train")
     val_dir = os.path.join(root, "val")
     test_dir = os.path.join(root, "test")
@@ -546,9 +549,11 @@ def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv):
             ].iloc[0]
 
             if aux_info:
-                meta_info = [0, 0, 0, 0] + \
-                  get_spatial_info(latitude, longitude)
-                # meta_info = [0, 0, 0, 0] + [0, 0, 0]
+                if nometa:
+                    meta_info = [0, 0, 0, 0] + [0, 0, 0]
+                else:
+                    meta_info = [0, 0, 0, 0] + \
+                      get_spatial_info(latitude, longitude)
 
                 images_and_targets.append(
                     (
@@ -582,7 +587,8 @@ class DatasetMeta(data.Dataset):
             class_ratio=1.0,
             per_sample=1.0,
             train_csv="",
-            val_csv=""
+            val_csv="",
+            nometa=False
     ):
         self.aux_info = aux_info
         self.dataset = dataset
@@ -613,7 +619,8 @@ class DatasetMeta(data.Dataset):
                 root,
                 "train" if train else "val",
                 train_csv,
-                val_csv
+                val_csv,
+                nometa=nometa
             )
         elif dataset == "auto_arborist":
             (
@@ -625,7 +632,8 @@ class DatasetMeta(data.Dataset):
                 root,
                 "train" if train else "val",
                 train_csv,
-                val_csv
+                val_csv,
+                nometa=nometa
             )
             self.num_classes = num_classes  # DANGEROUS
 
