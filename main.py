@@ -9,7 +9,6 @@ import wandb
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
-from ignite.metrics.recall import Recall
 
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import accuracy, AverageMeter
