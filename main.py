@@ -9,6 +9,7 @@ import wandb
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
+from ignite.metrics.recall import Recall
 
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import accuracy, AverageMeter
@@ -35,6 +36,7 @@ def parse_option():
     parser.add_argument("--wandb-project", type=str, default="NaN")
     parser.add_argument("--train-meta", type=str, default="")
     parser.add_argument("--val-meta", type=str, default="")
+    parser.add_argument("--test-meta", type=str, default="")
     parser.add_argument("--nometa", action="store_true")
 
     parser.add_argument('--cfg', type=str, required=True, metavar="FILE", help='path to config file', )
@@ -108,7 +110,9 @@ def main(config, args):
         dataset_val,
         data_loader_train,
         data_loader_val,
-        mixup_fn
+        mixup_fn,
+        dataset_test,
+        data_loader_test
     ) = build_loader(config, args)
     logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
     model = build_model(config)
@@ -146,7 +150,10 @@ def main(config, args):
         load_pretained(config, model_without_ddp, logger)
         if config.EVAL_MODE:
             acc1, acc5, loss = validate(config, data_loader_val, model)
-            logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+            acc1_t, acc5_t, loss_t = validate(config, data_loader_test, model)
+
+            logger.info(f"Accuracy of the network on the {len(dataset_val)} val images: {acc1:.1f} ({acc5:.1f})%")
+            logger.info(f"Accuracy of the network on the {len(dataset_test)} test images: {acc1_t:.1f} ({acc5_t:.1f})%")
             return
 
     if config.TRAIN.AUTO_RESUME:
@@ -375,7 +382,7 @@ def validate(config, data_loader, model, mask_meta=False):
         if config.DATA.ADD_META:
             output = model(images,meta)
         else:
-            output = model(images)
+           output = model(images)
 
         # measure accuracy and record loss
         loss = criterion(output, target)

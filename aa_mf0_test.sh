@@ -1,0 +1,13 @@
+CUDA_VISIBLE_DEVICES=1,4 python3 -m torch.distributed.launch \
+  --nproc_per_node 2 --master_port 29601  main.py --eval \
+  --cfg configs/MetaFG_meta_0_224.yaml \
+  --dataset auto_arborist \
+  --batch-size 128 \
+  --output /home/trode/metaformer/out_aa_mf0 \
+  --wandb-project autoarborist_theo \
+  --root /home/sandeepmukh/data/autoarborist \
+  --train-meta /home/sandeepmukh/data/autoarborist/train.csv \
+  --val-meta /home/sandeepmukh/data/autoarborist/val.csv \
+  --test-meta /home/sandeepmukh/data/autoarborist/test.csv \
+  --weight-decay 0.05 \
+  --pretrain /home/trode/baseline_model_pths/metaformer0/autoarborist_spatial/ckpt_epoch_112.pth

@@ -414,7 +414,7 @@ def get_all_classes(*dirs):
     return sorted(all_classes)
 
 
-def find_images_and_targets_inat100k(root, method, train_csv, val_csv, nometa=False):
+def find_images_and_targets_inat100k(root, method, train_csv, val_csv, test_csv, nometa=False):
     train_dir = os.path.join(root, "train")
     val_dir = os.path.join(root, "val")
     test_dir = os.path.join(root, "test")
@@ -424,6 +424,8 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv, nometa=Fa
         metadata_csv = pd.read_csv(train_csv)
     elif method == "val":
         metadata_csv = pd.read_csv(val_csv)
+    elif method == "test":
+        metadata_csv = pd.read_csv(test_csv)
 
     # for indexing lat long of csv
     lat_long_cols = ["latitude", "longitude"]
@@ -494,7 +496,7 @@ def find_images_and_targets_inat100k(root, method, train_csv, val_csv, nometa=Fa
     return images_and_targets, class_to_idx, images_info, num_classes
 
 
-def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv, nometa=False):
+def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv, test_csv, nometa=False):
     train_dir = os.path.join(root, "train")
     val_dir = os.path.join(root, "val")
     test_dir = os.path.join(root, "test")
@@ -504,6 +506,8 @@ def find_images_and_targets_auto_arborist(root, method, train_csv, val_csv, nome
         metadata_csv = pd.read_csv(train_csv)
     elif method == "val":
         metadata_csv = pd.read_csv(val_csv)
+    elif method == "test":
+        metadata_csv = pd.read_csv(test_csv)
 
     # for indexing lat long of csv
     lat_long_cols = ["tree/latitude", "tree/longitude"]
@@ -588,7 +592,9 @@ class DatasetMeta(data.Dataset):
             per_sample=1.0,
             train_csv="",
             val_csv="",
-            nometa=False
+            test_csv="",
+            nometa=False,
+            istest=False
     ):
         self.aux_info = aux_info
         self.dataset = dataset
@@ -610,6 +616,10 @@ class DatasetMeta(data.Dataset):
             images,class_to_idx,images_info = find_images_and_targets_aircraft(root,dataset,train)
 
         elif dataset == "inat100k":
+            path = "train" if train else "val"
+            if istest:
+                path = "test"
+
             (
                 images,
                 class_to_idx,
@@ -617,12 +627,16 @@ class DatasetMeta(data.Dataset):
                 _
             ) = find_images_and_targets_inat100k(
                 root,
-                "train" if train else "val",
+                path,
                 train_csv,
                 val_csv,
+                test_csv,
                 nometa=nometa
             )
         elif dataset == "auto_arborist":
+            path = "train" if train else "val"
+            if istest:
+                path = "test"
             (
                 images,
                 class_to_idx,
@@ -630,9 +644,10 @@ class DatasetMeta(data.Dataset):
                 num_classes
             ) = find_images_and_targets_auto_arborist(
                 root,
-                "train" if train else "val",
+                path,
                 train_csv,
                 val_csv,
+                test_csv,
                 nometa=nometa
             )
             self.num_classes = num_classes  # DANGEROUS

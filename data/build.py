@@ -32,6 +32,12 @@ def build_loader(config, args):
 
     print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
 
+    if args.eval:
+        dataset_test, _ = build_dataset(
+            is_train=False, config=config, args=args, is_test=True)
+    else:
+        dataset_test = None
+
     num_tasks = dist.get_world_size()
     global_rank = dist.get_rank()
     if config.DATA.ZIP_MODE and config.DATA.CACHE_MODE == 'part':
@@ -50,6 +56,10 @@ def build_loader(config, args):
         dist.get_rank(), len(dataset_val), dist.get_world_size())
     sampler_val = SubsetRandomSampler(indices)
 
+    indices_test = np.arange(
+        dist.get_rank(), len(dataset_test), dist.get_world_size())
+    sampler_test = SubsetRandomSampler(indices_test)
+
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train, sampler=sampler_train,
         batch_size=config.DATA.BATCH_SIZE,
@@ -67,6 +77,18 @@ def build_loader(config, args):
         drop_last=False
     )
 
+    if args.eval:
+        data_loader_test = torch.utils.data.DataLoader(
+            dataset_test, sampler=sampler_test,
+            batch_size=config.DATA.BATCH_SIZE,
+            shuffle=False,
+            num_workers=config.DATA.NUM_WORKERS,
+            pin_memory=config.DATA.PIN_MEMORY,
+            drop_last=False
+        )
+    else:
+        data_loader_test = None
+
     # setup mixup / cutmix
     mixup_fn = None
     mixup_active = config.AUG.MIXUP > 0 or config.AUG.CUTMIX > 0. or config.AUG.CUTMIX_MINMAX is not None
@@ -76,10 +98,10 @@ def build_loader(config, args):
             prob=config.AUG.MIXUP_PROB, switch_prob=config.AUG.MIXUP_SWITCH_PROB, mode=config.AUG.MIXUP_MODE,
             label_smoothing=config.MODEL.LABEL_SMOOTHING, num_classes=config.MODEL.NUM_CLASSES)
 
-    return dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn
+    return dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn, dataset_test, data_loader_test
 
 
-def build_dataset(is_train, config, args):
+def build_dataset(is_train, config, args, is_test=False):
     transform = build_transform(is_train, config)
     if config.DATA.DATASET == 'imagenet':
         prefix = 'train' if is_train else 'val'
@@ -146,7 +168,9 @@ def build_dataset(is_train, config, args):
             dataset=config.DATA.DATASET,
             train_csv=args.train_meta,
             val_csv=args.val_meta,
-            nometa=args.nometa
+            test_csv=args.test_meta,
+            nometa=args.nometa,
+            istest=is_test
         )
         nb_classes = 1000
 
@@ -160,7 +184,9 @@ def build_dataset(is_train, config, args):
             dataset=config.DATA.DATASET,
             train_csv=args.train_meta,
             val_csv=args.val_meta,
-            nometa=args.nometa
+            test_csv=args.test_meta,
+            nometa=args.nometa,
+            istest=is_test
         )
         nb_classes = dataset.num_classes
 
